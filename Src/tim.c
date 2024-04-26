@@ -41,9 +41,11 @@ void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 31999;// 64 МГц / 32000 = 2000 Гц
+  //htim3.Init.Prescaler = 31999;// 64 МГц / 32000 = 2000 Гц
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 1999;//2000*1/2000=1c
+  //htim3.Init.Period = 1999;//2000*1/2000=1c
+  htim3.Init.Prescaler = 63999;
+  htim3.Init.Period = 9;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)

@@ -47,7 +47,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-volatile uint8_t convCompleted = 0;// асинхронно-изменяемый тип объявления
+const int NUM_READ = 10;  // количество усреднений для средних арифм. фильтров(выборка точек)
+float k = 0.1;  // коэффициент фильтрации, 0.0-1.0 чем меньше, тем плавнее результат
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -68,7 +69,39 @@ int fgetc(FILE *f)
 	HAL_UART_Receive( &huart1,(uint8_t*)&ch,1, HAL_MAX_DELAY );
 	return ch;
 }
-
+// понятное бегущее среднее арифметическое
+float runMiddleArifm(float newVal)// принимает новое значение
+{  
+  static uint8_t idx = 0;             // индекс
+  static float valArray[NUM_READ];    // массив(буфер)
+  valArray[idx] = newVal;             // пишем каждый раз в новую ячейку
+  if (++idx >= NUM_READ) 
+      idx = 0;     // перезаписывая самое старое значение
+  float average = 0;                  // обнуляем среднее
+  for (int i = 0; i < NUM_READ; i++) 
+    average += valArray[i];           // суммируем
+  return (float)average / NUM_READ;   // возвращаем
+}
+//оптимальное бегущее среднее арифметическое 
+float runMiddleArifmOptim(float newVal) 
+{
+  static int t = 0;
+  static float vals[NUM_READ];
+  static float average = 0;
+  if (++t >= NUM_READ) 
+      t = 0; // перемотка t
+  average -= vals[t];// вычитаем старое
+  average += newVal;// прибавляем новое
+  vals[t] = newVal; // запоминаем в массив
+  return ((float)average / NUM_READ);
+}
+// экспонцеанальное бегущее среднее
+float expRunningAverage(float newVal) 
+{
+  static float filVal = 0;
+  filVal += (newVal - filVal) * k;//фильтрованное += (новое - фильтрованное) * коэффициент
+  return filVal;
+}
 /* USER CODE END 0 */
 
 /**
@@ -103,7 +136,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-	HAL_TIM_Base_Start(&htim3);//запуск таймера
+    HAL_TIM_Base_Start(&htim3);//запуск таймера
 	HAL_ADC_Start_IT(&hadc1);//запуск АЦП в режиме прерываний
 	//HAL_ADCEx_InjectedStart_IT(&hadc1);//запуск АЦП в режиме прерываний для инжектированных каналов
   /* USER CODE END 2 */
@@ -115,18 +148,8 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 		//GPIOA->BSRR|=GPIO_BSRR_BS7;//установить в логическую единицу port A pin 7
-		//while(convCompleted!=0)
-		//convCompleted=0;
 		//GPIOA->BSRR|=GPIO_BSRR_BR7;//установить в логический ноль port A pin 7
-		//}
-		//HAL_ADC_Start(&hadc1);//разрешение АЦП и запуск преобразования
-		/*GPIOA->BSRR|=GPIO_BSRR_BS7;//установить в логическую единицу port A pin 7
-		HAL_ADC_PollForConversion(&hadc1,10);//ожидает заверешния преобразования , второй аргумент пауза в мс
-		GPIOA->BSRR|=GPIO_BSRR_BR7;//установить в логический ноль port A pin 7
-		uint32_t CODE=HAL_ADC_GetValue(&hadc1);//результат в кодах
-		float VALUE=VREF/NVAR*CODE;//результат в вольтах
-		printf("%f\r\n",VALUE);*/
-  /* USER CODE END 3 */
+	  /* USER CODE END 3 */
 }
 
 /**
@@ -175,17 +198,19 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) //вызывается функция автоматически
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) // функция вызывается автоматически по окончанию преобразования
 {
-	//if(hadc->Instance==ADC1)
-	//{
-		uint32_t CODE=HAL_ADC_GetValue(&hadc1);//результат в кодах
-		float VALUE=VREF/NVAR*CODE;//результат в вольтах
-		//convCompleted = 1;
-		printf("%f\r\n",VALUE);
-		HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_7);//инвертируем состояние порта
-		HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);//инвертируем состояние порта, на который выведен Led
-	//}
+	uint32_t CODE=HAL_ADC_GetValue(&hadc1);//результат в кодах
+	float VALUE=VREF/NVAR*CODE;//результат в вольтах
+    /*float SUM = 0;// локальная переменная sum
+    for (int i = 0; i < NUM_READ; i++)// согласно количеству усреднений
+    SUM += VALUE;// суммируем значения с любого датчика в переменную sum
+	printf("%f\r\n",SUM / NUM_READ);*/
+    //printf("%f\r\n",VALUE);
+    float EXP_AVERAGE=expRunningAverage(VALUE);
+    printf("%f\r\n",EXP_AVERAGE);
+	HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_7);//инвертируем состояние порта
+	HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);//инвертируем состояние порта, на который выведен Led
 }
 /* USER CODE END 4 */
 

@@ -41,12 +41,12 @@ void MX_ADC1_Init(void)
   /** Common config
   */
   hadc1.Instance = ADC1;
-  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
-  hadc1.Init.DiscontinuousConvMode = ENABLE;
-  hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T3_TRGO;
-  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;//режим сканирования каналов заблокирован
+  hadc1.Init.ContinuousConvMode = DISABLE;//непрерывный режим преобразования запрещён
+  hadc1.Init.DiscontinuousConvMode = ENABLE;//прерывный режим преобразования разрешён
+  hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T3_TRGO;//запуск АЦП от таймера3
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;//выравнимвание по правому краю
+  hadc1.Init.NbrOfConversion = 1;//число преобразований - 1
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     Error_Handler();
@@ -78,8 +78,8 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /* ADC1 interrupt Init */
-    HAL_NVIC_SetPriority(ADC1_2_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(ADC1_2_IRQn);
+    HAL_NVIC_SetPriority(ADC1_2_IRQn, 0, 0);//установить приоритет прерываний
+    HAL_NVIC_EnableIRQ(ADC1_2_IRQn);//разрешить прерыввания
   /* USER CODE BEGIN ADC1_MspInit 1 */
 
   /* USER CODE END ADC1_MspInit 1 */
